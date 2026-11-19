@@ -29,12 +29,16 @@ Future<void> main() async {
   // Web links look like https://host/?code=ABC234. On native builds
   // Uri.base is a file URI without a query, so this is null.
   final initialCode = DropCodes.parse(Uri.base.queryParameters['code'] ?? '');
+  // Public links look like https://host/?p=<24-char token>; no sign-in.
+  final publicToken =
+      DropCodes.parsePublicToken(Uri.base.queryParameters['p'] ?? '');
 
   runApp(BurnerApp(
     config: config,
     auth: auth,
     drops: drops,
     initialCode: initialCode,
+    publicToken: publicToken,
   ));
   await auth.restore();
 }

@@ -35,6 +35,7 @@ class _SendPageState extends State<SendPage> {
   final _files = <_PendingFile>[];
   Duration _ttl = DropLimits.defaultTtl;
   bool _burnAfterRead = false;
+  bool _public = false;
   bool _dragging = false;
   bool _sending = false;
   double? _progress;
@@ -103,6 +104,7 @@ class _SendPageState extends State<SendPage> {
               files: _files.map((f) => f.file).toList(),
               ttl: _ttl,
               burnAfterRead: _burnAfterRead,
+              isPublic: _public,
             ),
             onProgress: (sent, total) {
               if (mounted && total > 0) setState(() => _progress = sent / total);
@@ -236,11 +238,24 @@ class _SendPageState extends State<SendPage> {
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  value: _burnAfterRead,
-                  onChanged:
-                      _sending ? null : (v) => setState(() => _burnAfterRead = v),
+                  value: _public,
+                  onChanged: _sending ? null : (v) => setState(() => _public = v),
+                  secondary: const Icon(Icons.public),
+                  title: const Text('Public link'),
+                  subtitle: const Text(
+                      'Anyone with the link can open it once, without signing in.'),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _public || _burnAfterRead,
+                  onChanged: _sending || _public
+                      ? null
+                      : (v) => setState(() => _burnAfterRead = v),
+                  secondary: const Icon(Icons.local_fire_department_outlined),
                   title: const Text('Burn after first open'),
-                  subtitle: const Text('Only the first device to open the code gets it.'),
+                  subtitle: Text(_public
+                      ? 'Public links always burn when opened.'
+                      : 'Only the first device to open the code gets it.'),
                 ),
                 const SizedBox(height: 8),
                 if (_sending) ...[

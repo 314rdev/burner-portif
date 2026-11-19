@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import '../models/drop.dart';
 import '../services/file_saver.dart';
 import '../util/codes.dart';
-import '../util/format.dart';
 import 'errors.dart';
 import 'services_scope.dart';
+import 'public_receive_screen.dart';
 import 'theme.dart';
+import 'widgets/drop_contents.dart';
 
 /// Open a drop by code (or pasted link) and download its contents.
 class ReceivePage extends StatefulWidget {
@@ -56,6 +57,14 @@ class _ReceivePageState extends State<ReceivePage> {
   }
 
   Future<void> _open() async {
+    final publicToken = DropCodes.parsePublicToken(_input.text);
+    if (publicToken != null) {
+      setState(() => _error = null);
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PublicReceiveScreen(token: publicToken),
+      ));
+      return;
+    }
     final code = DropCodes.parse(_input.text);
     if (code == null) {
       setState(() => _error = 'Enter a 6-character code like ABC-234, or paste a Burner link.');
@@ -167,7 +176,7 @@ class _ReceivePageState extends State<ReceivePage> {
               ),
               if (_drop != null) ...[
                 const SizedBox(height: 24),
-                _DropContents(
+                DropContentsView(
                   drop: _drop!,
                   justBurned: _justBurned,
                   progress: _progress,
@@ -179,129 +188,6 @@ class _ReceivePageState extends State<ReceivePage> {
             ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _DropContents extends StatelessWidget {
-  const _DropContents({
-    required this.drop,
-    required this.justBurned,
-    required this.progress,
-    required this.saved,
-    required this.onDownload,
-    required this.onDownloadAll,
-  });
-
-  final Drop drop;
-  final bool justBurned;
-  final Map<String, double> progress;
-  final Set<String> saved;
-  final ValueChanged<DropFile> onDownload;
-  final VoidCallback onDownloadAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text(DropCodes.format(drop.code),
-                style: BurnerTheme.codeStyle(context, size: 20)),
-            const Spacer(),
-            Text('expires in ${formatRemaining(drop.expiresAt)}',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-          ],
-        ),
-        if (justBurned) ...[
-          const SizedBox(height: 12),
-          Card(
-            color: scheme.errorContainer,
-            child: ListTile(
-              leading: Icon(Icons.local_fire_department, color: scheme.onErrorContainer),
-              title: Text('This drop is now burned',
-                  style: TextStyle(color: scheme.onErrorContainer)),
-              subtitle: Text(
-                'Nobody else can open it. Save what you need before leaving this page.',
-                style: TextStyle(color: scheme.onErrorContainer),
-              ),
-            ),
-          ),
-        ],
-        if (drop.hasText) ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Text('Text', style: text.labelLarge),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: () async {
-                          await Clipboard.setData(ClipboardData(text: drop.text));
-                          if (context.mounted) showMessage(context, 'Text copied');
-                        },
-                        icon: const Icon(Icons.copy, size: 18),
-                        label: const Text('Copy'),
-                      ),
-                    ],
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 360),
-                    child: SingleChildScrollView(
-                      child: SelectableText(drop.text, style: text.bodyLarge),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-        if (drop.hasFiles) ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  title: Text('${drop.files.length} file(s)'),
-                  subtitle: Text(formatBytes(drop.totalBytes)),
-                  trailing: drop.files.length > 1
-                      ? FilledButton.tonal(
-                          onPressed: progress.isEmpty ? onDownloadAll : null,
-                          child: const Text('Download all'),
-                        )
-                      : null,
-                ),
-                const Divider(height: 1),
-                for (final f in drop.files)
-                  ListTile(
-                    leading: const Icon(Icons.insert_drive_file_outlined),
-                    title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: progress.containsKey(f.path)
-                        ? LinearProgressIndicator(
-                            value: progress[f.path]! > 0 ? progress[f.path] : null)
-                        : Text(formatBytes(f.size)),
-                    trailing: saved.contains(f.path)
-                        ? Icon(Icons.check_circle, color: scheme.primary)
-                        : IconButton(
-                            tooltip: 'Download',
-                            icon: const Icon(Icons.download),
-                            onPressed:
-                                progress.containsKey(f.path) ? null : () => onDownload(f),
-                          ),
-                  ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

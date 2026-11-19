@@ -52,7 +52,9 @@ class HistoryPageState extends State<HistoryPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${DropCodes.format(drop.code)}?'),
+        title: Text(drop.isPublic
+            ? 'Delete this public link?'
+            : 'Delete ${DropCodes.format(drop.code)}?'),
         content: const Text(
             'The code stops working and its files are deleted. This cannot be undone.'),
         actions: [
@@ -239,13 +241,22 @@ class _DropTile extends StatelessWidget {
       onTap: drop.isActive() ? onShare : null,
       leading: Icon(
         drop.isActive()
-            ? (drop.hasFiles ? Icons.folder_zip_outlined : Icons.notes)
+            ? (drop.isPublic
+                ? Icons.public
+                : drop.hasFiles
+                    ? Icons.folder_zip_outlined
+                    : Icons.notes)
             : Icons.local_fire_department_outlined,
         color: drop.isActive() ? scheme.primary : scheme.outline,
       ),
-      title: Text(DropCodes.format(drop.code),
-          style: BurnerTheme.codeStyle(context, size: 16).copyWith(
-              color: drop.isActive() ? null : scheme.outline)),
+      title: drop.isPublic
+          ? Text('Public link',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: drop.isActive() ? null : scheme.outline))
+          : Text(DropCodes.format(drop.code),
+              style: BurnerTheme.codeStyle(context, size: 16).copyWith(
+                  color: drop.isActive() ? null : scheme.outline)),
       subtitle: Text('$contents\n$status · opened ${drop.downloads}×'),
       isThreeLine: true,
       trailing: Row(
@@ -253,7 +264,7 @@ class _DropTile extends StatelessWidget {
         children: [
           if (drop.isActive())
             IconButton(
-              tooltip: 'Show code',
+              tooltip: drop.isPublic ? 'Show link' : 'Show code',
               icon: const Icon(Icons.qr_code_2),
               onPressed: onShare,
             ),

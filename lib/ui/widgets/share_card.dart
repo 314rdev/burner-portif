@@ -19,8 +19,10 @@ class ShareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final link = ServicesScope.of(context).linkFor(drop.code);
+    final link = ServicesScope.of(context).linkFor(drop);
     final qrData = link ?? drop.code;
+
+    if (drop.isPublic) return _publicCard(context, link);
 
     final details = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,19 +68,73 @@ class ShareCard extends StatelessWidget {
       ],
     );
 
-    final qr = Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: QrImageView(data: qrData, size: 148, padding: EdgeInsets.zero),
-    );
+    return _layout(details, _qr(qrData));
+  }
 
+  Widget _publicCard(BuildContext context, String? link) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.public, size: 18, color: scheme.primary),
+            const SizedBox(width: 6),
+            Text('Public link', style: text.labelLarge),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (link != null)
+          SelectableText(
+            link,
+            maxLines: 3,
+            style: text.bodyMedium?.copyWith(fontFamily: 'monospace'),
+          )
+        else
+          Text('Set BURNER_WEB_URL to create public links.',
+              style: TextStyle(color: scheme.error)),
+        const SizedBox(height: 8),
+        Text(
+          'Anyone with the link can open it once, no sign-in needed · '
+          'expires in ${formatRemaining(drop.expiresAt)}',
+          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (link != null)
+              FilledButton.icon(
+                onPressed: () => _copy(context, link, 'Link copied'),
+                icon: const Icon(Icons.link),
+                label: const Text('Copy link'),
+              ),
+            ?trailing,
+          ],
+        ),
+      ],
+    );
+    return _layout(details, link == null ? null : _qr(link));
+  }
+
+  static Widget _qr(String data) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: QrImageView(data: data, size: 148, padding: EdgeInsets.zero),
+      );
+
+  static Widget _layout(Widget details, Widget? qr) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: LayoutBuilder(builder: (context, constraints) {
+          if (qr == null) return details;
           if (constraints.maxWidth < 480) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +142,6 @@ class ShareCard extends StatelessWidget {
             );
           }
           return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(child: details),
               const SizedBox(width: 20),

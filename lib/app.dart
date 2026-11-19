@@ -5,17 +5,19 @@ import 'services/auth_service.dart';
 import 'services/drop_service.dart';
 import 'ui/auth_screen.dart';
 import 'ui/home_screen.dart';
+import 'ui/public_receive_screen.dart';
 import 'ui/services_scope.dart';
 import 'ui/splash_screen.dart';
 import 'ui/theme.dart';
 
-class BurnerApp extends StatelessWidget {
+class BurnerApp extends StatefulWidget {
   const BurnerApp({
     super.key,
     required this.config,
     required this.auth,
     required this.drops,
     this.initialCode,
+    this.publicToken,
   });
 
   final FirebaseConfig config;
@@ -23,28 +25,46 @@ class BurnerApp extends StatelessWidget {
   final DropService drops;
   final String? initialCode;
 
+  /// Token from a public link (`?p=`). Shows the no-sign-in receive screen
+  /// instead of the normal app until the visitor leaves it.
+  final String? publicToken;
+
+  @override
+  State<BurnerApp> createState() => _BurnerAppState();
+}
+
+class _BurnerAppState extends State<BurnerApp> {
+  late String? _publicToken = widget.publicToken;
+
   @override
   Widget build(BuildContext context) {
+    final auth = widget.auth;
     return ServicesScope(
-      config: config,
+      config: widget.config,
       auth: auth,
-      drops: drops,
+      drops: widget.drops,
       child: MaterialApp(
         title: 'Burner',
         debugShowCheckedModeBanner: false,
         theme: BurnerTheme.light(),
         darkTheme: BurnerTheme.dark(),
-        home: ListenableBuilder(
-          listenable: auth,
-          builder: (context, _) {
-            if (auth.isRestoring) {
-              return const SplashScreen();
-            }
-            if (!auth.isSignedIn) return const AuthScreen();
-            // Keyed by uid so switching accounts resets all page state.
-            return HomeScreen(key: ValueKey(auth.user!.uid), initialCode: initialCode);
-          },
-        ),
+        home: _publicToken != null
+            ? PublicReceiveScreen(
+                token: _publicToken!,
+                onLeave: () => setState(() => _publicToken = null),
+              )
+            : ListenableBuilder(
+                listenable: auth,
+                builder: (context, _) {
+                  if (auth.isRestoring) return const SplashScreen();
+                  if (!auth.isSignedIn) return const AuthScreen();
+                  // Keyed by uid so switching accounts resets all page state.
+                  return HomeScreen(
+                    key: ValueKey(auth.user!.uid),
+                    initialCode: widget.initialCode,
+                  );
+                },
+              ),
       ),
     );
   }

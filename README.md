@@ -19,8 +19,10 @@ Cloud Storage), and the security rules in this repo decide who can do what.
 - **Burn after first open**: only the first device that opens the code gets it.
 - **My drops**: your drops, their status and open count, plus usage totals
   (drops sent/received, bytes uploaded/downloaded).
-- **Signed-in users only**: nothing in Firestore or Storage is readable or
-  writable without Firebase Auth.
+- **Public links**: share with someone who doesn't use Burner. The link opens
+  in any browser without signing in, works once, and burns when opened.
+- **Signed-in users only** for everything else: without Firebase Auth, the only
+  thing anyone can do is open a public link they were given.
 - **Responsive**: a side rail on wide windows, a bottom bar on phones.
 
 ## How it works
@@ -57,7 +59,10 @@ requires it for new buckets, and the free usage quotas still apply.
 
    Fill in the values. `BURNER_WEB_URL` is where you host the web build
    (for example `https://<project-id>.web.app`). It's used for share links;
-   leave it empty if you don't host the web app. This file is gitignored.
+   leave it empty if you don't host the web app. Public links need it.
+   `BURNER_SIGNUP_ENABLED` shows the "Create an account" button; it's
+   `false` for now, so create accounts in the Firebase console
+   (Authentication → Users → Add user). This file is gitignored.
 
 6. Deploy the rules (needs the [Firebase CLI](https://firebase.google.com/docs/cli)):
 
@@ -169,7 +174,8 @@ flutter analyze && flutter test
 
 ## Security model
 
-- Every Firestore and Storage operation requires a signed-in user.
+- Every Firestore and Storage operation requires a signed-in user, except
+  opening a public link (below).
 - Anyone signed in who knows a code can open a **live** drop (not expired, not
   burned). Codes are 6 characters from a 32-symbol alphabet (~1 billion
   combinations), and users can't list other people's drops.
@@ -179,8 +185,15 @@ flutter analyze && flutter test
   live drop document. Storage itself only checks that the user is signed in.
 - Usage counters are written by the client, so they're self-reported. The
   rules only stop them from going down.
-- **Open sign-up:** by default anyone can create an account in your project.
-  For a personal tool, create your accounts and then turn off sign-ups under
+- **Public links** are drops whose id is a 24-character random token
+  (62²⁴ ≈ 10⁴³) carried in the link (`?p=…`), never a short code. Without
+  sign-in, someone can read only a public drop that is live, burn it once, and
+  download its files until 15 minutes after it burns. The Storage rule checks
+  the drop document (a cross-service rule) before serving a file. The receiver
+  page only burns when they tap **Open**, so link previews don't use it up.
+  Anyone the link is forwarded to before it's opened can open it.
+- **Sign-up:** the app hides "Create an account" (`BURNER_SIGNUP_ENABLED`).
+  That doesn't stop direct API calls, so also turn off sign-ups under
   Authentication → Settings → User actions.
 - **Burn after first open is best-effort.** Two devices opening the same code
   at the same moment can both get it, and a modified client could skip the

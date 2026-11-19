@@ -18,7 +18,9 @@ the code and downloads the contents. Drops expire (10 min to 7 days) and can be
   rules-based or client-side approach (or a Firebase/GCS-native feature like
   TTL policies and bucket lifecycle rules).
 - **Only authenticated users** (Firebase Auth, email + password) can read or
-  write anything in Firestore or Storage.
+  write anything in Firestore or Storage. The one exception: opening a
+  **public link** drop (long secret token, burns once), which the rules allow
+  without auth.
 - **Platforms:** Linux (Ubuntu) desktop, web, Android. The UI must be
   responsive across all three. iOS/macOS/Windows folders exist from
   `flutter create` but are not targets.
@@ -60,22 +62,34 @@ Keep it that way unless the app clearly outgrows it.
 
 ## Data model
 
-- `drops/{code}`: `ownerUid`, `text`, `files[] {name,size,contentType,path}`,
-  `createdAt` (server time), `expiresAt`, `burnAfterRead`, `burned`,
-  `downloads`. The 6-char code is the doc id, drawn from
-  `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
+- `drops/{id}`: `ownerUid`, `text`, `files[] {name,size,contentType,path}`,
+  `createdAt` (server time), `expiresAt`, `burnAfterRead`, `public`, `burned`,
+  `downloads`, plus `burnedAt` (server time) once burned. For private drops
+  the id is the 6-char code from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. For public
+  drops it's a 24-char `[A-Za-z0-9]` token, `burnAfterRead` is always true,
+  and `public` is true. Older docs may lack `public`; read it as false.
 - `users/{uid}`: usage counters `dropsCreated`, `bytesUploaded`,
   `dropsReceived`, `bytesDownloaded`, `lastActiveAt`. Written with Firestore
   `increment` transforms in the same commit as the drop.
-- Storage: `drops/{ownerUid}/{20-char random folder}/{index}_{safeName}`.
+- Storage: `drops/{ownerUid}/{folder}/{index}_{safeName}`. `folder` is a
+  20-char random id for private drops, or the drop's token for public drops.
+  The public Storage rule uses it to `firestore.get` the drop.
 
 Flow: upload files → one Firestore `commit` creates the drop
 (`currentDocument.exists=false`) and bumps usage. On a code collision the
 commit fails (ALREADY_EXISTS or PERMISSION_DENIED) and `create` retries with a
 new code. If the commit fails, uploaded files are deleted.
 
-Receiving: `find` (GET) → `markReceived` (download +1, set `burned` when
-burn-after-read) → per-file download.
+Receiving: `find` (GET) → `markReceived` (download +1, set `burned` and
+`burnedAt` when burn-after-read) → per-file download.
+
+Public links (`?p=<token>`): `main.dart` reads the token and `BurnerApp`
+shows `PublicReceiveScreen` instead of the auth gate. It uses
+`FirestoreClient.anonymous` / `StorageClient.anonymous` (no token, `?key=`).
+The steps are `findPublic` → the user taps Open → `openPublic` (burn) →
+`downloadPublic`. Files stay readable for `DropService.publicDownloadWindow`
+(15 min, mirrored in `storage.rules`) after `burnedAt`. Pasting a public link
+into the in-app Receive page pushes the same screen.
 
 Cleanup without a backend: on app start, `DropService.cleanup()` deletes the
 current user's expired/burned drops and their files. The backstop for users
@@ -94,10 +108,26 @@ Limits are duplicated by necessity (rules can't import Dart):
 | 7-day max expiry | `maxTtl` | `firestore.rules` (+5 min skew) |
 | Code alphabet/length | `DropCodes` | `firestore.rules` regex |
 | Drop document fields | `Drop.toCreateMap` | `dropFields()` |
+| Public token length | `DropCodes.publicTokenLength` | both rules files |
+| Public download window | `DropService.publicDownloadWindow` | `storage.rules` |
 | Usage fields | `UsageStats` / `DropService` | `counters()` |
 
 If you change the drop document shape, update `firestore.rules` too or
 creates will be denied.
+
+## Feature flags
+
+`lib/config/features.dart` holds build-time flags read with
+`bool.fromEnvironment`. They're set in `config/firebase.env.json`.
+
+- `BURNER_SIGNUP_ENABLED` (default `false`): shows "Create an account".
+  The sign-up code is kept; it's hidden until the owner enables it.
+
+## Changelog
+
+Add every user-visible change to `CHANGELOG.md` under `[Unreleased]`
+(Keep a Changelog format). On release, move it under a new version heading
+and bump `version:` in `pubspec.yaml`.
 
 ## Commands
 

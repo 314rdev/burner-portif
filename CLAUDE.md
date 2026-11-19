@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Context for AI assistants working on **burner**.
+Context for AI assistants working on **Burner**.
 
 ## What it is
 
-burner is an AirDrop-style tool for Ubuntu, web and Android. A user drags files
+Burner is an AirDrop-style tool for Ubuntu, web and Android. A user drags files
 (or pastes text) into the window, burner uploads them and returns a short code
 (`ABC-234`), a link and a QR code. Another device signed in to burner enters
 the code and downloads the contents. Drops expire (10 min to 7 days) and can be
@@ -114,6 +114,25 @@ firebase deploy --only firestore:rules,storage
 
 `config/firebase.env.json` is gitignored; `config/firebase.env.example.json`
 is the template. Without it the app shows `SetupRequiredApp`.
+
+## Branding
+
+- The app name shown to users is **Burner** (capital B). The package, binary
+  and folder names stay `burner`.
+- The icon is the Material `local_fire_department` glyph with an ember
+  gradient on `#201A17`. `tool/generate_icons.py` renders every platform's
+  icons and splash images from it. Re-run the script rather than editing PNGs.
+- Splash: Android uses `drawable*/launch_background.xml` (API ≤30) and
+  `values*-v31/styles.xml` (API 31+). Web uses the `#splash` div in
+  `web/index.html`, removed on `flutter-first-frame`. All platforms then show
+  `SplashScreen` while the session restores. On Linux that's the only splash;
+  the GTK window appears on the first frame with the brand background.
+- Brand colours are duplicated in `BurnerTheme`, `generate_icons.py`,
+  `android/.../values/colors.xml`, `web/index.html` and
+  `linux/runner/my_application.cc`. Change them together.
+- Linux window icon: `linux/icons/burner.png` is installed to `data/` by
+  CMake and loaded in `my_application.cc`. GNOME/Wayland takes the dock icon
+  from the desktop entry that `linux/install-desktop-entry.sh` writes.
 
 ## Conventions and gotchas
 

@@ -1,7 +1,7 @@
-# burner 🔥
+# Burner 🔥
 
 AirDrop-style sharing for Ubuntu, the web and Android. Drag files (or paste
-text) into burner, get a short code like `ABC-234`, a link and a QR code, then
+text) into Burner, get a short code like `ABC-234`, a link and a QR code, then
 open that code on another device to download everything. Drops expire on their
 own and can burn after the first open.
 
@@ -139,7 +139,27 @@ flutter build apk --release --dart-define-from-file=config/firebase.env.json
 flutter build web --release --dart-define-from-file=config/firebase.env.json && firebase deploy --only hosting
 ```
 
-The Linux bundle is written to `build/linux/x64/release/bundle/`.
+The Linux bundle is written to `build/linux/x64/release/bundle/`. To add
+Burner to the Ubuntu app grid and dock, with its icon:
+
+```bash
+./linux/install-desktop-entry.sh
+```
+
+Run it again after each new build. `--uninstall` removes it.
+
+### Icons and splash
+
+The icons, favicon and splash images are generated from the Material flame
+glyph used in the UI:
+
+```bash
+python3 tool/generate_icons.py
+```
+
+This needs Pillow. The script writes `web/favicon.png`, `web/icons/`,
+`web/splash/`, the Android `mipmap-*`/`drawable-*` images, `linux/icons/` and
+`assets/branding/`.
 
 ### Tests
 

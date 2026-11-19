@@ -6,6 +6,7 @@ import 'services/drop_service.dart';
 import 'ui/auth_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/services_scope.dart';
+import 'ui/splash_screen.dart';
 import 'ui/theme.dart';
 
 class BurnerApp extends StatelessWidget {
@@ -37,7 +38,7 @@ class BurnerApp extends StatelessWidget {
           listenable: auth,
           builder: (context, _) {
             if (auth.isRestoring) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              return const SplashScreen();
             }
             if (!auth.isSignedIn) return const AuthScreen();
             // Keyed by uid so switching accounts resets all page state.

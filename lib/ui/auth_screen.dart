@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'errors.dart';
 import 'services_scope.dart';
+import 'splash_screen.dart';
 import 'theme.dart';
 
 /// Email + password sign in / sign up.
@@ -83,8 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Icon(Icons.local_fire_department,
-                              size: 48, color: scheme.primary),
+                          const Center(child: BurnerFlame(size: 56)),
                           const SizedBox(height: 8),
                           Text('Burner',
                               textAlign: TextAlign.center,

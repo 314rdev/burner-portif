@@ -4,6 +4,7 @@ import 'history_page.dart';
 import 'receive_page.dart';
 import 'send_page.dart';
 import 'services_scope.dart';
+import 'splash_screen.dart';
 import 'theme.dart';
 
 /// Main shell: Send / Receive / My drops.
@@ -62,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.local_fire_department),
+            BurnerFlame(size: 26),
             SizedBox(width: 8),
             Text('Burner', style: TextStyle(fontWeight: FontWeight.w700)),
           ],

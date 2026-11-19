@@ -6,6 +6,12 @@ class BurnerTheme {
 
   static const seed = Color(0xFFE8590C);
 
+  /// Splash/icon colours. Keep in sync with tool/generate_icons.py,
+  /// android/app/src/main/res/values/colors.xml, web/index.html and
+  /// linux/runner/my_application.cc.
+  static const splashBackground = Color(0xFF201A17);
+  static const flameBottom = Color(0xFFFFB04D);
+
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
 

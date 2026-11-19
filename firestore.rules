@@ -9,10 +9,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // drops/{code}: one document per drop; the 6-char code is the doc id.
+    // drops/{id}: one document per drop.
+    //  - private drops: id is the 6-char code; signed-in users only.
+    //  - public drops: id is a 24-char secret token from the share link;
+    //    anyone with the link (no sign-in) can open it once.
     match /drops/{code} {
       function isOwner() {
-        return resource.data.ownerUid == request.auth.uid;
+        return signedIn() && resource.data.ownerUid == request.auth.uid;
+      }
+
+      function isPublic() {
+        return resource.data.get('public', false) == true;
       }
 
       function isLive() {
@@ -20,22 +27,50 @@ service cloud.firestore {
           && resource.data.burned != true;
       }
 
-      function dropFields() {
-        return ['ownerUid', 'text', 'files', 'createdAt', 'expiresAt',
-                'burnAfterRead', 'burned', 'downloads'];
+      // Signed-in users, or anyone for a public drop.
+      function canOpen() {
+        return isLive() && (signedIn() || isPublic());
       }
 
-      // Anyone signed in who knows the code may read a live drop.
+      function dropFields() {
+        return ['ownerUid', 'text', 'files', 'createdAt', 'expiresAt',
+                'burnAfterRead', 'public', 'burned', 'downloads'];
+      }
+
+      function validId() {
+        let d = request.resource.data;
+        return (d.public == false
+                && code.matches('^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$'))
+          || (d.public == true
+                && code.matches('^[A-Za-z0-9]{24}$')
+                && d.burnAfterRead == true);
+      }
+
+      // Opening: +1 download, and for burn-after-read drops set burned=true
+      // with burnedAt = server time. Nothing else may change.
+      function validOpen() {
+        let d = request.resource.data;
+        let changed = d.diff(resource.data).affectedKeys();
+        return changed.hasOnly(['downloads', 'burned', 'burnedAt'])
+          && d.downloads == resource.data.downloads + 1
+          && ((!changed.hasAny(['burned', 'burnedAt'])
+               && resource.data.burnAfterRead != true)
+              || (resource.data.burnAfterRead == true
+                  && d.burned == true
+                  && d.burnedAt == request.time));
+      }
+
       // Owners can always read their own (to clean up expired ones).
-      allow get: if signedIn() && (isOwner() || isLive());
+      allow get: if isOwner() || canOpen();
 
       // Listing is only for "my drops": the query must filter on ownerUid.
       allow list: if signedIn() && resource.data.ownerUid == request.auth.uid;
 
       allow create: if signedIn()
-        && code.matches('^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$')
         && request.resource.data.keys().hasOnly(dropFields())
         && request.resource.data.keys().hasAll(dropFields())
+        && request.resource.data.public is bool
+        && validId()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.text is string
         && request.resource.data.text.size() <= 100000
@@ -52,19 +87,9 @@ service cloud.firestore {
         && request.resource.data.burned == false
         && request.resource.data.downloads == 0;
 
-      // A recipient opening a live drop: +1 download, and burn it if it is
-      // burn-after-read. Nothing else may change.
-      allow update: if signedIn()
-        && !isOwner()
-        && isLive()
-        && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['downloads', 'burned'])
-        && request.resource.data.downloads == resource.data.downloads + 1
-        && (request.resource.data.burned == resource.data.burned
-            || (resource.data.burnAfterRead == true
-                && request.resource.data.burned == true));
+      allow update: if !isOwner() && canOpen() && validOpen();
 
-      allow delete: if signedIn() && isOwner();
+      allow delete: if isOwner();
     }
 
     // users/{uid}: self-reported usage counters. Counters can only grow.

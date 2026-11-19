@@ -12,13 +12,24 @@ typedef ProgressCallback = void Function(int sent, int total);
 
 /// Minimal Cloud Storage for Firebase client over the v0 REST API (the same
 /// endpoint the official SDKs use), so `storage.rules` apply.
+/// [StorageClient.anonymous] sends no token; it is used for public links.
 class StorageClient {
-  StorageClient(this._config, this._token, {http.Client? client})
-      : _http = client ?? http.Client();
+  StorageClient(this._config, TokenProvider token, {http.Client? client})
+      : _token = token,
+        _http = client ?? http.Client();
+
+  StorageClient.anonymous(this._config, {http.Client? client})
+      : _token = null,
+        _http = client ?? http.Client();
 
   final FirebaseConfig _config;
-  final TokenProvider _token;
+  final TokenProvider? _token;
   final http.Client _http;
+
+  Future<Map<String, String>> _auth() async {
+    final token = _token;
+    return token == null ? {} : {'Authorization': 'Firebase ${await token()}'};
+  }
 
   String get _base =>
       'https://firebasestorage.googleapis.com/v0/b/${_config.storageBucket}/o';
@@ -42,7 +53,7 @@ class StorageClient {
       'POST',
       Uri.parse(_base).replace(queryParameters: {'name': path}),
     )
-      ..headers['Authorization'] = 'Firebase ${await _token()}'
+      ..headers.addAll(await _auth())
       ..headers['Content-Type'] = contentType
       ..contentLength = length;
 
@@ -73,7 +84,7 @@ class StorageClient {
     ProgressCallback? onProgress,
   }) async {
     final request = http.Request('GET', _objectUri(path, {'alt': 'media'}))
-      ..headers['Authorization'] = 'Firebase ${await _token()}';
+      ..headers.addAll(await _auth());
     final response = await _http.send(request);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final body = await response.stream.bytesToString();
@@ -92,7 +103,7 @@ class StorageClient {
   Future<void> delete(String path) async {
     final response = await _http.delete(
       _objectUri(path),
-      headers: {'Authorization': 'Firebase ${await _token()}'},
+      headers: await _auth(),
     );
     if (response.statusCode == 404) return;
     FirebaseRestException.check(response);

@@ -145,32 +145,50 @@ class FirestoreWrite {
 /// Minimal Cloud Firestore client over the v1 REST API.
 ///
 /// Requests carry the user's Firebase ID token, so `firestore.rules` apply
-/// exactly as they would with the official SDKs.
+/// exactly as they would with the official SDKs. A client built with
+/// [FirestoreClient.anonymous] sends no token (`request.auth == null` in the
+/// rules); it is used for public links.
 class FirestoreClient {
-  FirestoreClient(this._config, this._token, {http.Client? client})
-      : _http = client ?? http.Client();
+  FirestoreClient(this._config, TokenProvider token, {http.Client? client})
+      : _token = token,
+        _http = client ?? http.Client();
+
+  FirestoreClient.anonymous(this._config, {http.Client? client})
+      : _token = null,
+        _http = client ?? http.Client();
 
   final FirebaseConfig _config;
-  final TokenProvider _token;
+  final TokenProvider? _token;
   final http.Client _http;
 
   String get _root =>
       'projects/${_config.projectId}/databases/(default)/documents';
 
-  String get _base => 'https://firestore.googleapis.com/v1/$_root';
+  String get _baseUrl => 'https://firestore.googleapis.com/v1/$_root';
+
+  /// Builds a request URL; anonymous requests identify the project by key.
+  Uri _url(String suffix) {
+    final uri = Uri.parse('$_baseUrl$suffix');
+    return _token == null
+        ? uri.replace(queryParameters: {'key': _config.apiKey})
+        : uri;
+  }
 
   /// Full resource name for a document path such as `drops/ABC123`.
   String documentName(String path) => '$_root/$path';
 
-  Future<Map<String, String>> _headers() async => {
-        'Authorization': 'Bearer ${await _token()}',
-        'Content-Type': 'application/json',
-      };
+  Future<Map<String, String>> _headers() async {
+    final token = _token;
+    return {
+      if (token != null) 'Authorization': 'Bearer ${await token()}',
+      'Content-Type': 'application/json',
+    };
+  }
 
   /// Reads one document, or returns null if it does not exist.
   Future<FirestoreDocument?> get(String path) async {
     final response =
-        await _http.get(Uri.parse('$_base/$path'), headers: await _headers());
+        await _http.get(_url('/$path'), headers: await _headers());
     if (response.statusCode == 404) return null;
     return _toDocument(FirebaseRestException.check(response));
   }
@@ -178,7 +196,7 @@ class FirestoreClient {
   /// Atomically applies [writes].
   Future<void> commit(List<FirestoreWrite> writes) async {
     final response = await _http.post(
-      Uri.parse('$_base:commit'),
+      _url(':commit'),
       headers: await _headers(),
       body: jsonEncode({'writes': writes.map((w) => w.toJson()).toList()}),
     );
@@ -187,7 +205,7 @@ class FirestoreClient {
 
   Future<void> delete(String path) async {
     final response =
-        await _http.delete(Uri.parse('$_base/$path'), headers: await _headers());
+        await _http.delete(_url('/$path'), headers: await _headers());
     if (response.statusCode == 404) return;
     FirebaseRestException.check(response);
   }
@@ -200,7 +218,7 @@ class FirestoreClient {
     int limit = 100,
   }) async {
     final response = await _http.post(
-      Uri.parse('$_base:runQuery'),
+      _url(':runQuery'),
       headers: await _headers(),
       body: jsonEncode({
         'structuredQuery': {

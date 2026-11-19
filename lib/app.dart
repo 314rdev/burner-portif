@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+
+import 'config/firebase_config.dart';
+import 'services/auth_service.dart';
+import 'services/drop_service.dart';
+import 'ui/auth_screen.dart';
+import 'ui/home_screen.dart';
+import 'ui/services_scope.dart';
+import 'ui/theme.dart';
+
+class BurnerApp extends StatelessWidget {
+  const BurnerApp({
+    super.key,
+    required this.config,
+    required this.auth,
+    required this.drops,
+    this.initialCode,
+  });
+
+  final FirebaseConfig config;
+  final AuthService auth;
+  final DropService drops;
+  final String? initialCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return ServicesScope(
+      config: config,
+      auth: auth,
+      drops: drops,
+      child: MaterialApp(
+        title: 'burner',
+        debugShowCheckedModeBanner: false,
+        theme: BurnerTheme.light(),
+        darkTheme: BurnerTheme.dark(),
+        home: ListenableBuilder(
+          listenable: auth,
+          builder: (context, _) {
+            if (auth.isRestoring) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            if (!auth.isSignedIn) return const AuthScreen();
+            // Keyed by uid so switching accounts resets all page state.
+            return HomeScreen(key: ValueKey(auth.user!.uid), initialCode: initialCode);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the app was built without Firebase settings.
+class SetupRequiredApp extends StatelessWidget {
+  const SetupRequiredApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'burner',
+      debugShowCheckedModeBanner: false,
+      theme: BurnerTheme.light(),
+      darkTheme: BurnerTheme.dark(),
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.settings_suggest_outlined, size: 48),
+                  SizedBox(height: 16),
+                  Text('Firebase is not configured',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 12),
+                  Text(
+                    'Copy config/firebase.env.example.json to config/firebase.env.json, '
+                    'fill in your project values, and run:\n\n'
+                    'flutter run --dart-define-from-file=config/firebase.env.json',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

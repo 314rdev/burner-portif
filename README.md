@@ -88,13 +88,20 @@ requires it for new buckets, and the free usage quotas still apply.
    gcloud storage buckets update gs://<bucket> --lifecycle-file=storage-lifecycle.json
    ```
 
-8. **Web downloads need CORS** on the bucket:
+8. **Web downloads need CORS** on the bucket. This step is required: without
+   it, downloads in the browser fail with "No 'Access-Control-Allow-Origin'
+   header". Error responses carry that header anyway, so a quick check can
+   look fine before this is set.
 
    ```bash
    gcloud storage buckets update gs://<bucket> --cors-file=storage-cors.json
    ```
 
-   You can replace `"*"` in `storage-cors.json` with your hosting origin(s).
+   No `gcloud` locally? Open [Cloud Shell](https://shell.cloud.google.com/),
+   upload `storage-cors.json` or paste its contents into a file, and run the
+   same command. You can replace `"*"` in `storage-cors.json` with your
+   hosting origin(s), but keep a `localhost` origin if you use
+   `flutter run -d chrome`.
 
 > **API key restrictions:** if you restrict the Web API key in Google Cloud
 > Console, the Linux and Android builds call the same REST APIs without a

@@ -7,6 +7,7 @@ import 'package:burner/services/drop_service.dart';
 import 'package:burner/services/firestore_client.dart';
 import 'package:burner/services/storage_client.dart';
 import 'package:burner/ui/auth_screen.dart';
+import 'package:burner/ui/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -72,6 +73,22 @@ void main() {
     await pumpApp(tester, const Size(1280, 800));
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('splash shows while the session is restored', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final auth = AuthService(config, client: client);
+    final drops = DropService(
+      auth: auth,
+      firestore: FirestoreClient(config, auth.idToken, client: client),
+      storage: StorageClient(config, auth.idToken, client: client),
+    );
+    await tester.pumpWidget(BurnerApp(config: config, auth: auth, drops: drops));
+    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(find.text('Burner'), findsOneWidget);
+    await tester.runAsync(auth.restore);
+    await tester.pump();
+    expect(find.byType(AuthScreen), findsOneWidget);
   });
 
   testWidgets('setup screen explains missing config', (tester) async {

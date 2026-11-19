@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Burner: real Firebase config (use config/firebase.env.example.json as template)
+config/firebase.env.json
+.firebase/
+firebase-debug.log

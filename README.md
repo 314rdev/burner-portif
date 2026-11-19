@@ -1,12 +1,61 @@
-# Burner 🔥
+<div align="center">
 
-AirDrop-style sharing for Ubuntu, the web and Android. Drag files (or paste
-text) into Burner, get a short code like `ABC-234`, a link and a QR code, then
-open that code on another device to download everything. Drops expire on their
-own and can burn after the first open.
+<img src="assets/branding/icon.png" alt="Burner icon" width="112">
+
+# Burner
+
+**AirDrop-style sharing for Ubuntu, the web and Android.**
+
+Drop files or text in, get a short code, link or QR code, and pick it up on another device. Drops expire and can burn after the first open.
+
+[![Flutter](https://img.shields.io/badge/Flutter-3.44-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-3.12-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%C2%B7%20Firestore%20%C2%B7%20Storage-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![Version](https://img.shields.io/badge/version-1.1.0-E8590C)](CHANGELOG.md)
+
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?logo=ubuntu&logoColor=white)](#running)
+[![Web](https://img.shields.io/badge/Web-4285F4?logo=googlechrome&logoColor=white)](https://berner-314.web.app)
+[![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)](#running)
+
+</div>
+
+---
+
+Drag files (or paste text) into Burner, get a short code like `ABC-234`, a
+link and a QR code, then open that code on another device to download
+everything. You can also send a **public link** to someone who doesn't use
+Burner: it opens in any browser without signing in and works once.
 
 There's no server. The app talks to Firebase directly (Auth, Cloud Firestore,
 Cloud Storage), and the security rules in this repo decide who can do what.
+
+## Screenshots
+
+### Desktop (Ubuntu and web)
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/prints/desktop-send.png" alt="Send: drop zone, code, link and QR" width="300"><br><sub><b>Send</b>: drop files, get a code and QR</sub></td>
+    <td align="center"><img src="assets/prints/desktop-receive.png" alt="Receive: enter a code and download" width="300"><br><sub><b>Receive</b>: enter the code, download</sub></td>
+    <td align="center"><img src="assets/prints/desktop-my-drops.png" alt="My drops: history and usage" width="300"><br><sub><b>My drops</b>: history and usage</sub></td>
+  </tr>
+</table>
+
+### Mobile
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/prints/mobile-sign-in.jpg" alt="Sign in on a phone" width="200"><br><sub><b>Sign in</b></sub></td>
+    <td align="center"><img src="assets/prints/mobile-send.jpg" alt="Send options on a phone" width="200"><br><sub><b>Send</b>: expiry, public link, burn</sub></td>
+    <td align="center"><img src="assets/prints/mobile-share-qr.jpg" alt="QR code to share a drop" width="200"><br><sub><b>Share</b>: scan the QR code</sub></td>
+  </tr>
+</table>
+
+### Public link (no sign-in)
+
+<p align="center">
+  <img src="assets/prints/web-public-link.png" alt="Public link page: open a drop once without signing in" width="640">
+</p>
 
 ## Features
 

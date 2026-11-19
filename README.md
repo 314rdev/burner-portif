@@ -275,10 +275,8 @@ These are enforced in both the app (`DropLimits` in
 
 See [CLAUDE.md](CLAUDE.md) for the architecture, data model and conventions.
 
-## Roadmap ideas
+## Roadmap
 
-- Google sign-in (needs a desktop OAuth flow on Linux)
-- Folder drops (zip on the fly)
-- Android share-sheet target ("Share to burner")
-- Rules unit tests with the Firebase emulator
-- Optional end-to-end encryption, with the key carried in the link fragment
+See [TODO.md](TODO.md). Next up: **Share to Burner** from the Android share
+sheet, and Ubuntu desktop integration (a top-bar tray icon, plus **Open With**
+and **Send with Burner** in the file manager).

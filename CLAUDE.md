@@ -129,6 +129,11 @@ Add every user-visible change to `CHANGELOG.md` under `[Unreleased]`
 (Keep a Changelog format). On release, move it under a new version heading
 and bump `version:` in `pubspec.yaml`.
 
+## TODO
+
+Planned work lives in `TODO.md`. When an item ships, remove it there and add
+it to `CHANGELOG.md`.
+
 ## Commands
 
 ```bash

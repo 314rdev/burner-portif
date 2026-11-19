@@ -72,6 +72,10 @@ requires it for new buckets, and the free usage quotas still apply.
    firebase deploy --only firestore:rules,storage
    ```
 
+   Run this interactively (not with `--non-interactive`). The first time, it
+   asks to grant Cloud Storage an IAM role so `storage.rules` can read
+   Firestore. Answer **Y**, or public-link downloads fail with 403.
+
 7. **Auto-delete expired data.** The app cleans up a user's expired drops when
    they open it. These two settings handle drops whose owner never comes back:
 

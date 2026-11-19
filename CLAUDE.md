@@ -166,6 +166,11 @@ is the template. Without it the app shows `SetupRequiredApp`.
 
 ## Conventions and gotchas
 
+- Deploy storage rules interactively. `storage.rules` uses `firestore.get`,
+  which needs `roles/firebaserules.firestoreServiceAgent` on the Storage
+  service agent. The CLI only offers the grant in an interactive run and only
+  when the rules file changed. Without it, public downloads return 403.
+
 - Firebase REST auth headers: Firestore uses `Authorization: Bearer <idToken>`,
   Storage uses `Authorization: Firebase <idToken>`.
 - Firestore REST integers are strings (`integerValue: "42"`); use

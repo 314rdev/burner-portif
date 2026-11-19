@@ -5,6 +5,11 @@ rules_version = '2';
 //  - a 20-char random id for private drops, or
 //  - the drop's 24-char public token for public-link drops.
 // Keep limits in sync with DropLimits / DropService in lib/services/drop_service.dart.
+//
+// publicDropOpen() reads Firestore (a cross-service rule). The Storage service
+// agent needs roles/firebaserules.firestoreServiceAgent for that, or public
+// downloads get 403. `firebase deploy` offers to grant it, but only in an
+// interactive run (not with --non-interactive) and only when this file changed.
 service firebase.storage {
   match /b/{bucket}/o {
     match /drops/{uid}/{folder}/{fileName} {

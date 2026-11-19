@@ -29,6 +29,29 @@ class DropCodes {
     return List.generate(20, (_) => chars[r.nextInt(chars.length)]).join();
   }
 
+  /// Length of a public-link token. Public drops can be opened without
+  /// signing in, so they use a long secret (62^24 ≈ 10^43) instead of the
+  /// short code, which would be guessable without auth as a barrier.
+  static const publicTokenLength = 24;
+  static final publicTokenPattern = RegExp('^[A-Za-z0-9]{$publicTokenLength}\$');
+
+  static String publicToken([Random? random]) {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final r = random ?? _random;
+    return List.generate(publicTokenLength, (_) => chars[r.nextInt(chars.length)])
+        .join();
+  }
+
+  /// Extracts a public-link token from a link containing `?p=...` (or a bare
+  /// token). Returns null if none is found.
+  static String? parsePublicToken(String input) {
+    var text = input.trim();
+    final fromLink = RegExp(r'[?&#]p=([^&#\s]+)').firstMatch(text);
+    if (fromLink != null) text = Uri.decodeComponent(fromLink.group(1)!);
+    return publicTokenPattern.hasMatch(text) ? text : null;
+  }
+
   /// `ABC234` -> `ABC-234`.
   static String format(String code) => code.length == length
       ? '${code.substring(0, 3)}-${code.substring(3)}'

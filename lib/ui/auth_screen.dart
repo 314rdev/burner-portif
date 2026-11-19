@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/features.dart';
 import 'errors.dart';
 import 'services_scope.dart';
 import 'splash_screen.dart';
@@ -155,17 +156,18 @@ class _AuthScreenState extends State<AuthScreen> {
                                 : Text(_signUp ? 'Create account' : 'Sign in'),
                           ),
                           const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: _busy
-                                ? null
-                                : () => setState(() {
-                                      _signUp = !_signUp;
-                                      _error = null;
-                                    }),
-                            child: Text(_signUp
-                                ? 'Already have an account? Sign in'
-                                : 'New here? Create an account'),
-                          ),
+                          if (Features.signUpEnabled)
+                            TextButton(
+                              onPressed: _busy
+                                  ? null
+                                  : () => setState(() {
+                                        _signUp = !_signUp;
+                                        _error = null;
+                                      }),
+                              child: Text(_signUp
+                                  ? 'Already have an account? Sign in'
+                                  : 'New here? Create an account'),
+                            ),
                           if (!_signUp)
                             TextButton(
                               onPressed: _busy ? null : _resetPassword,

@@ -7,6 +7,7 @@ import 'package:burner/services/drop_service.dart';
 import 'package:burner/services/firestore_client.dart';
 import 'package:burner/services/storage_client.dart';
 import 'package:burner/ui/auth_screen.dart';
+import 'package:burner/ui/public_receive_screen.dart';
 import 'package:burner/ui/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +45,8 @@ Future<AuthService> pumpApp(WidgetTester tester, Size size, {bool signIn = true}
     auth: auth,
     firestore: FirestoreClient(config, auth.idToken, client: client),
     storage: StorageClient(config, auth.idToken, client: client),
+    publicFirestore: FirestoreClient.anonymous(config, client: client),
+    publicStorage: StorageClient.anonymous(config, client: client),
   );
   await tester.runAsync(() async {
     await auth.restore();
@@ -59,6 +62,32 @@ void main() {
     await pumpApp(tester, const Size(400, 800), signIn: false);
     expect(find.byType(AuthScreen), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
+    // Sign-up is behind BURNER_SIGNUP_ENABLED, off by default.
+    expect(find.text('New here? Create an account'), findsNothing);
+  });
+
+  testWidgets('a public link opens without signing in', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final auth = AuthService(config, client: client);
+    final drops = DropService(
+      auth: auth,
+      firestore: FirestoreClient(config, auth.idToken, client: client),
+      storage: StorageClient(config, auth.idToken, client: client),
+      publicFirestore: FirestoreClient.anonymous(config, client: client),
+      publicStorage: StorageClient.anonymous(config, client: client),
+    );
+    await tester.pumpWidget(BurnerApp(
+      config: config,
+      auth: auth,
+      drops: drops,
+      publicToken: 'a' * 24,
+    ));
+    expect(find.byType(PublicReceiveScreen), findsOneWidget);
+    expect(find.byType(AuthScreen), findsNothing);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    // The mock returns 404, so the screen reports a used/expired link.
+    expect(find.text('Nothing here'), findsOneWidget);
   });
 
   testWidgets('phone width uses a bottom navigation bar', (tester) async {
@@ -82,6 +111,8 @@ void main() {
       auth: auth,
       firestore: FirestoreClient(config, auth.idToken, client: client),
       storage: StorageClient(config, auth.idToken, client: client),
+      publicFirestore: FirestoreClient.anonymous(config, client: client),
+      publicStorage: StorageClient.anonymous(config, client: client),
     );
     await tester.pumpWidget(BurnerApp(config: config, auth: auth, drops: drops));
     expect(find.byType(SplashScreen), findsOneWidget);

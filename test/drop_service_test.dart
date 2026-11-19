@@ -3,10 +3,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:burner/config/firebase_config.dart';
+import 'package:burner/models/drop.dart';
 import 'package:burner/services/auth_service.dart';
 import 'package:burner/services/drop_service.dart';
 import 'package:burner/services/firestore_client.dart';
 import 'package:burner/services/storage_client.dart';
+import 'package:burner/util/codes.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -53,6 +55,8 @@ void main() {
       auth: auth,
       firestore: FirestoreClient(config, auth.idToken, client: client),
       storage: StorageClient(config, auth.idToken, client: client),
+      publicFirestore: FirestoreClient.anonymous(config, client: client),
+      publicStorage: StorageClient.anonymous(config, client: client),
     );
     await auth.signIn('a@b.c', 'secret1');
   });
@@ -91,6 +95,50 @@ void main() {
         [{'fieldPath': 'createdAt', 'setToServerValue': 'REQUEST_TIME'}]);
     final usage = writes[1] as Map;
     expect((usage['update'] as Map)['name'], endsWith('/users/uid1'));
+  });
+
+  test('public drops use a long token, always burn, and share the folder', () async {
+    final drop = await drops.create(const DropRequest(text: 'hi', isPublic: true));
+    expect(drop.isPublic, isTrue);
+    expect(drop.burnAfterRead, isTrue);
+    expect(DropCodes.publicTokenPattern.hasMatch(drop.code), isTrue);
+
+    final commit = requests.firstWhere((r) => r.url.path.endsWith(':commit'));
+    final create = ((jsonDecode(commit.body) as Map)['writes'] as List)[0] as Map;
+    final fields = (create['update'] as Map)['fields'] as Map;
+    expect(fields['public'], {'booleanValue': true});
+    expect(fields['burnAfterRead'], {'booleanValue': true});
+  });
+
+  test('public lookups and opens send no auth token', () async {
+    requests.clear();
+    final token = DropCodes.publicToken();
+    expect(await drops.findPublic(token), isNull);
+    final drop = Drop(
+      code: token,
+      ownerUid: 'someone',
+      text: 'x',
+      files: const [],
+      createdAt: DateTime.now(),
+      expiresAt: DateTime.now().add(const Duration(hours: 1)),
+      burnAfterRead: true,
+      isPublic: true,
+    );
+    await drops.openPublic(drop);
+
+    for (final r in requests) {
+      expect(r.headers.containsKey('Authorization'), isFalse, reason: '${r.url}');
+      expect(r.url.queryParameters['key'], 'key');
+    }
+    final writes = (jsonDecode(requests.last.body) as Map)['writes'] as List;
+    final open = writes.single as Map;
+    expect((open['update'] as Map)['fields'], {'burned': {'booleanValue': true}});
+    expect(open['updateMask'], {'fieldPaths': ['burned']});
+    expect(open['updateTransforms'], [
+      {'fieldPath': 'downloads', 'increment': {'integerValue': '1'}},
+      {'fieldPath': 'burnedAt', 'setToServerValue': 'REQUEST_TIME'},
+    ]);
+    expect(open['currentDocument'], {'exists': true});
   });
 
   test('create rejects empty drops', () async {

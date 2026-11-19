@@ -39,6 +39,15 @@ void main() {
       expect(DropCodes.parse('https://x.web.app/'), isNull);
     });
 
+    test('public tokens are 24 alphanumerics and parse from links', () {
+      final token = DropCodes.publicToken();
+      expect(DropCodes.publicTokenPattern.hasMatch(token), isTrue);
+      expect(DropCodes.parsePublicToken('https://x.web.app/?p=$token'), token);
+      expect(DropCodes.parsePublicToken(token), token);
+      expect(DropCodes.parsePublicToken('https://x.web.app/?code=ABC234'), isNull);
+      expect(DropCodes.parsePublicToken('short'), isNull);
+    });
+
     test('format splits the code', () {
       expect(DropCodes.format('ABC234'), 'ABC-234');
     });

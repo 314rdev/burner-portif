@@ -22,6 +22,8 @@ Future<void> main() async {
     auth: auth,
     firestore: FirestoreClient(config, auth.idToken),
     storage: StorageClient(config, auth.idToken),
+    publicFirestore: FirestoreClient.anonymous(config),
+    publicStorage: StorageClient.anonymous(config),
   );
 
   // Web links look like https://host/?code=ABC234. On native builds

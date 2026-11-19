@@ -40,7 +40,9 @@ class Drop {
     required this.createdAt,
     required this.expiresAt,
     required this.burnAfterRead,
+    this.isPublic = false,
     this.burned = false,
+    this.burnedAt,
     this.downloads = 0,
   });
 
@@ -53,7 +55,12 @@ class Drop {
 
   /// When true, the first recipient to open the drop burns it.
   final bool burnAfterRead;
+
+  /// Public drops are opened from a link without signing in. Their id is a
+  /// long secret token instead of a short code, and they always burn.
+  final bool isPublic;
   final bool burned;
+  final DateTime? burnedAt;
   final int downloads;
 
   bool get hasText => text.isNotEmpty;
@@ -72,6 +79,7 @@ class Drop {
         'files': files.map((f) => f.toMap()).toList(),
         'expiresAt': expiresAt,
         'burnAfterRead': burnAfterRead,
+        'public': isPublic,
         'burned': false,
         'downloads': 0,
       };
@@ -87,7 +95,9 @@ class Drop {
         createdAt: map['createdAt'] as DateTime? ?? DateTime.now(),
         expiresAt: map['expiresAt'] as DateTime? ?? DateTime.now(),
         burnAfterRead: map['burnAfterRead'] as bool? ?? false,
+        isPublic: map['public'] as bool? ?? false,
         burned: map['burned'] as bool? ?? false,
+        burnedAt: map['burnedAt'] as DateTime?,
         downloads: (map['downloads'] as num?)?.toInt() ?? 0,
       );
 }

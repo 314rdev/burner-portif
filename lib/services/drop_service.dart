@@ -34,12 +34,16 @@ class DropRequest {
     this.files = const [],
     this.ttl = DropLimits.defaultTtl,
     this.burnAfterRead = false,
+    this.isPublic = false,
   });
 
   final String text;
   final List<XFile> files;
   final Duration ttl;
   final bool burnAfterRead;
+
+  /// Opened from a link without signing in. Always burns on first open.
+  final bool isPublic;
 
   bool get isEmpty => text.trim().isEmpty && files.isEmpty;
 }
@@ -62,11 +66,21 @@ class DropService {
     required this._auth,
     required this._firestore,
     required this._storage,
+    required this._publicFirestore,
+    required this._publicStorage,
   });
 
   final AuthService _auth;
   final FirestoreClient _firestore;
   final StorageClient _storage;
+
+  /// Token-less clients for public links (receiver not signed in).
+  final FirestoreClient _publicFirestore;
+  final StorageClient _publicStorage;
+
+  /// How long files of a burned public drop stay downloadable, so the
+  /// receiver can finish downloading after opening. Mirrors storage.rules.
+  static const publicDownloadWindow = Duration(minutes: 15);
 
   String get _uid {
     final user = _auth.user;
@@ -114,7 +128,10 @@ class DropService {
     }
     final total = sizes.fold(0, (a, b) => a + b);
 
-    final folder = 'drops/$uid/${DropCodes.storageId()}';
+    // Public drops use their token as both document id and Storage folder,
+    // so storage.rules can look the drop up for token-less downloads.
+    final publicToken = request.isPublic ? DropCodes.publicToken() : null;
+    final folder = 'drops/$uid/${publicToken ?? DropCodes.storageId()}';
     final uploaded = <DropFile>[];
     var done = 0;
     try {
@@ -141,13 +158,14 @@ class DropService {
       final now = DateTime.now();
       for (var attempt = 0;; attempt++) {
         final drop = Drop(
-          code: DropCodes.generate(),
+          code: publicToken ?? DropCodes.generate(),
           ownerUid: uid,
           text: text,
           files: uploaded,
           createdAt: now,
           expiresAt: now.add(request.ttl),
-          burnAfterRead: request.burnAfterRead,
+          burnAfterRead: request.isPublic || request.burnAfterRead,
+          isPublic: request.isPublic,
         );
         try {
           await _firestore.commit([
@@ -206,6 +224,7 @@ class DropService {
         _dropDoc(drop.code),
         data: {if (drop.burnAfterRead) 'burned': true},
         increments: const {'downloads': 1},
+        serverTimestamps: [if (drop.burnAfterRead) 'burnedAt'],
         mustExist: true,
       ),
       FirestoreWrite.merge(
@@ -215,6 +234,45 @@ class DropService {
       ),
     ]);
   }
+
+  /// Looks up a public drop by its link token, without signing in. Returns
+  /// null if it does not exist, expired or was already opened.
+  Future<Drop?> findPublic(String token) async {
+    try {
+      final doc = await _publicFirestore.get('drops/$token');
+      if (doc == null) return null;
+      final drop = Drop.fromMap(doc.id, doc.data);
+      return drop.isPublic && drop.isActive() ? drop : null;
+    } on FirebaseRestException catch (e) {
+      if (e.isPermissionDenied || e.isNotFound) return null;
+      rethrow;
+    }
+  }
+
+  /// Opens (burns) a public drop. After this nobody can open the link again;
+  /// its files stay downloadable for [publicDownloadWindow].
+  Future<void> openPublic(Drop drop) async {
+    await _publicFirestore.commit([
+      FirestoreWrite.merge(
+        _publicFirestore.documentName('drops/${drop.code}'),
+        data: const {'burned': true},
+        increments: const {'downloads': 1},
+        serverTimestamps: const ['burnedAt'],
+        mustExist: true,
+      ),
+    ]);
+  }
+
+  /// Downloads a file of a public drop without signing in.
+  Future<Uint8List> downloadPublic(
+    DropFile file, {
+    void Function(int received, int total)? onProgress,
+  }) =>
+      _publicStorage.download(
+        file.path,
+        expectedLength: file.size,
+        onProgress: onProgress,
+      );
 
   /// Downloads one file of a drop into memory.
   Future<Uint8List> download(

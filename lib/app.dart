@@ -29,7 +29,7 @@ class BurnerApp extends StatelessWidget {
       auth: auth,
       drops: drops,
       child: MaterialApp(
-        title: 'burner',
+        title: 'Burner',
         debugShowCheckedModeBanner: false,
         theme: BurnerTheme.light(),
         darkTheme: BurnerTheme.dark(),
@@ -56,7 +56,7 @@ class SetupRequiredApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'burner',
+      title: 'Burner',
       debugShowCheckedModeBanner: false,
       theme: BurnerTheme.light(),
       darkTheme: BurnerTheme.dark(),

@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(Icons.local_fire_department),
             SizedBox(width: 8),
-            Text('burner', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text('Burner', style: TextStyle(fontWeight: FontWeight.w700)),
           ],
         ),
         actions: const [_AccountMenu(), SizedBox(width: 8)],

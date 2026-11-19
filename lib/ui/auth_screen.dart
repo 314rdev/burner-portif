@@ -86,7 +86,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           Icon(Icons.local_fire_department,
                               size: 48, color: scheme.primary),
                           const SizedBox(height: 8),
-                          Text('burner',
+                          Text('Burner',
                               textAlign: TextAlign.center,
                               style: text.headlineMedium
                                   ?.copyWith(fontWeight: FontWeight.w700)),

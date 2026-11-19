@@ -58,7 +58,7 @@ class _ReceivePageState extends State<ReceivePage> {
   Future<void> _open() async {
     final code = DropCodes.parse(_input.text);
     if (code == null) {
-      setState(() => _error = 'Enter a 6-character code like ABC-234, or paste a burner link.');
+      setState(() => _error = 'Enter a 6-character code like ABC-234, or paste a Burner link.');
       return;
     }
     FocusScope.of(context).unfocus();

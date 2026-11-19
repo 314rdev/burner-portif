@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Burner — Cloud Storage rules.
+// Objects live at drops/{ownerUid}/{randomFolderId}/{index}_{fileName}.
+// Keep the size limit in sync with DropLimits in lib/services/drop_service.dart.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /drops/{uid}/{folder}/{fileName} {
+      // Any signed-in user may download. The 20-char random folder id is only
+      // revealed through a live drop document, which Firestore rules guard.
+      allow get: if request.auth != null;
+
+      // Only the owner uploads into their own folder; no overwrites.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && folder.matches('^[A-Za-z0-9]{20}$')
+        && request.resource.size <= 100 * 1024 * 1024;
+
+      allow delete: if request.auth != null && request.auth.uid == uid;
+
+      // No list, no update.
+    }
+  }
+}
